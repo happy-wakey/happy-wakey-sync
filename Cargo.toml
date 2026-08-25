@@ -1,0 +1,18 @@
+[package]
+name = "happy-wakey-sync"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT"
+description = "Bounded local-first synchronization for Happy Wakey"
+repository = "https://github.com/happy-wakey/happy-wakey-sync"
+
+[dependencies]
+happy-wakey-interfaces = { git = "https://github.com/happy-wakey/happy-wakey-interfaces.git", rev = "37e05f1128a8260b86d36c79e0d4d05f8241a6e0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+syncer-rs = { git = "https://github.com/opto-sync/syncer.rs.git", rev = "f8dfef90722dc423d442388f61856958a177d36f", package = "syncer-rs" }
+thiserror = "2"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,27 @@
+[package]
+org = "happy-wakey"
+name = "happy-wakey-sync"
+version = "0.1.0"
+description = "Bounded local-first synchronization for Happy Wakey"
+license = "MIT"
+keywords = ["sync", "opto-sync", "sqlite", "postgresql", "indexeddb"]
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/happy-wakey/happy-wakey-sync"
+
+[dependencies]
+"happy-wakey/happy-wakey-interfaces" = "^0.1.0"
+"opto-sync/syncer-rs" = "^0.3.0"
+
+[targets.repository]
+dir = "."
+adapter = "rust"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", ".zed/**", "zed_modules/**", "target/**", "**/*.log", ".DS_Store"]
+
+[scripts]
+test = "cargo test --all-targets --locked"
