@@ -19,6 +19,8 @@ const SERVER_OWNED_FIELDS: &[&str] = &[
     "revocation",
     "role",
     "session",
+    "subject",
+    "token",
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -58,7 +60,7 @@ pub fn merge_preferences(base: Value, incoming: &Value) -> Result<Value, SyncPol
     Ok(merge_values(base, incoming, &options))
 }
 
-fn validate_document(document: &Value) -> Result<(), SyncPolicyError> {
+pub fn validate_document(document: &Value) -> Result<(), SyncPolicyError> {
     let object = document.as_object().ok_or(SyncPolicyError::NotAnObject)?;
     for forbidden in SERVER_OWNED_FIELDS {
         if object.contains_key(*forbidden) {
@@ -90,6 +92,14 @@ mod tests {
         assert_eq!(
             result,
             Err(SyncPolicyError::ServerOwnedField("role".into()))
+        );
+        assert_eq!(
+            validate_document(&json!({ "token": "secret" })),
+            Err(SyncPolicyError::ServerOwnedField("token".into()))
+        );
+        assert_eq!(
+            validate_document(&json!({ "subject": "user-1" })),
+            Err(SyncPolicyError::ServerOwnedField("subject".into()))
         );
     }
 
