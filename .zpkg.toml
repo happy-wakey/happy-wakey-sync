@@ -12,7 +12,10 @@ url = "https://github.com/happy-wakey/happy-wakey-sync"
 
 [dependencies]
 "happy-wakey/happy-wakey-interfaces" = "^0.1.0"
-"opto-sync/syncer-rs" = "^0.4.0"
+# Runtime source authority remains the exact `syncer.rs` Git revision pinned in
+# Cargo.toml. Do not claim Zed registry consumption until a certified artifact
+# exists and `.zpkg.lock` records its immutable source identity.
+# "opto-sync/syncer-rs" = "^0.4.0"
 
 [targets.repository]
 dir = "."
