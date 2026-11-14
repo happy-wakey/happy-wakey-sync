@@ -72,7 +72,10 @@ pub fn validate_document(document: &Value) -> Result<(), SyncPolicyError> {
             return Err(SyncPolicyError::DocumentTooDeep);
         }
         for (key, value) in current {
-            if SERVER_OWNED_FIELDS.iter().any(|field| key.eq_ignore_ascii_case(field)) {
+            if SERVER_OWNED_FIELDS
+                .iter()
+                .any(|field| key.eq_ignore_ascii_case(field))
+            {
                 return Err(SyncPolicyError::ServerOwnedField(key.clone()));
             }
             match value {
@@ -153,7 +156,10 @@ mod tests {
         for _ in 0..34 {
             nested = json!({"preferences": nested});
         }
-        assert_eq!(validate_document(&nested), Err(SyncPolicyError::DocumentTooDeep));
+        assert_eq!(
+            validate_document(&nested),
+            Err(SyncPolicyError::DocumentTooDeep)
+        );
     }
 
     #[test]
