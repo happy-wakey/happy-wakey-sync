@@ -38,6 +38,8 @@ pub enum SyncPolicyError {
     NotAnObject,
     #[error("field is server-owned and cannot be synchronized: {0}")]
     ServerOwnedField(String),
+    #[error("sync document exceeds the 32-level nesting bound")]
+    DocumentTooDeep,
 }
 
 /// Merge approved client-owned preferences through Opto Sync.
@@ -62,9 +64,37 @@ pub fn merge_preferences(base: Value, incoming: &Value) -> Result<Value, SyncPol
 
 pub fn validate_document(document: &Value) -> Result<(), SyncPolicyError> {
     let object = document.as_object().ok_or(SyncPolicyError::NotAnObject)?;
-    for forbidden in SERVER_OWNED_FIELDS {
-        if object.contains_key(*forbidden) {
-            return Err(SyncPolicyError::ServerOwnedField((*forbidden).to_owned()));
+    // The merge engine also merges nested maps and arrays. Check the entire
+    // document before passing any part of it to reconciliation.
+    let mut pending = vec![(object, 0usize)];
+    while let Some((current, depth)) = pending.pop() {
+        if depth > 32 {
+            return Err(SyncPolicyError::DocumentTooDeep);
+        }
+        for (key, value) in current {
+            if SERVER_OWNED_FIELDS.iter().any(|field| key.eq_ignore_ascii_case(field)) {
+                return Err(SyncPolicyError::ServerOwnedField(key.clone()));
+            }
+            match value {
+                Value::Object(next) => pending.push((next, depth + 1)),
+                Value::Array(items) => {
+                    // Count nested arrays as depth as well.
+                    let mut arrays = vec![(items, depth + 1)];
+                    while let Some((items, array_depth)) = arrays.pop() {
+                        if array_depth > 32 {
+                            return Err(SyncPolicyError::DocumentTooDeep);
+                        }
+                        for item in items {
+                            match item {
+                                Value::Object(next) => pending.push((next, array_depth)),
+                                Value::Array(next) => arrays.push((next, array_depth + 1)),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
     }
     Ok(())
@@ -101,6 +131,29 @@ mod tests {
             validate_document(&json!({ "subject": "user-1" })),
             Err(SyncPolicyError::ServerOwnedField("subject".into()))
         );
+    }
+
+    #[test]
+    fn rejects_nested_server_owned_state_before_merging() {
+        for payload in [
+            json!({"settings": {"role": "admin"}}),
+            json!({"widgets": [{"metadata": {"refresh_token": "secret"}}]}),
+            json!({"settings": {"TOKEN": "secret"}}),
+        ] {
+            assert!(matches!(
+                merge_preferences(json!({}), &payload),
+                Err(SyncPolicyError::ServerOwnedField(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn rejects_excessively_nested_client_documents() {
+        let mut nested = json!({"theme": "dark"});
+        for _ in 0..34 {
+            nested = json!({"preferences": nested});
+        }
+        assert_eq!(validate_document(&nested), Err(SyncPolicyError::DocumentTooDeep));
     }
 
     #[test]
